@@ -1,0 +1,13 @@
+__pycache__/
+*.py[cod]
+notebooks
+amostra_dados_brutos.xlsx
+teste.py
+test.py
+testes.py
+*.csv
+.venv
+*.ipynb
+*.ini
+*.xlsx
+*.db

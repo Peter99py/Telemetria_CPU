@@ -7,7 +7,6 @@ import pandas as pd
 import os
 import shutil
 import re
-import sys
 
 # Pastas de entrada/saída do processo
 raw_data_path = "data/raw"
@@ -22,42 +21,45 @@ os.makedirs(processed_data_path, exist_ok=True)
 # Processa um arquivo CSV individualmente
 def process_file(file_path, output_path):
     
-    print(f"\nLendo o arquivo: {os.path.basename(file_path)}")
+    try:
+        datetime_sniffer = pd.read_csv(file_path, encoding="latin1", nrows=0).columns.tolist()
 
-    datetime_sniffer = pd.read_csv(file_path, encoding="latin1", nrows=0).columns.tolist()
+        first_value = datetime_sniffer[0]
 
-    first_value = datetime_sniffer[0]
+        time_pattern = r'^\d{2}:\d{2}:\d{2}'
 
-    time_pattern = r'^\d{2}:\d{2}:\d{2}'
+        data = None
 
-    data = None
+        if re.match(time_pattern, first_value):
+            data = pd.read_csv(file_path, encoding="latin1", header=None)
+            data = data.dropna(axis=1, how='all')
+            data = data.dropna(axis=0, how='all')
+            data.columns =  ['Time', 'Core 0 Temp. (°)', 'Core 1 Temp. (°)', 'Core 2 Temp. (°)',
+                            'Core 3 Temp. (°)', 'Core 4 Temp. (°)', 'Core 5 Temp. (°)',
+                            'Low temp. (°)', 'High temp. (°)', 'Core load (%)', 'Core speed (MHz)',
+                            'Low temp. (°).1', 'High temp. (°).1', 'Core load (%).1',
+                            'Core speed (MHz).1', 'Low temp. (°).2', 'High temp. (°).2',
+                            'Core load (%).2', 'Core speed (MHz).2', 'Low temp. (°).3',
+                            'High temp. (°).3', 'Core load (%).3', 'Core speed (MHz).3',
+                            'Low temp. (°).4', 'High temp. (°).4', 'Core load (%).4',
+                            'Core speed (MHz).4', 'Low temp. (°).5', 'High temp. (°).5',
+                            'Core load (%).5', 'Core speed (MHz).5', 'CPU 0 Power']
 
-    if re.match(time_pattern, first_value):
-        data = pd.read_csv(file_path, encoding="latin1", header=None)
-        data = data.dropna(axis=1, how='all')
-        data = data.dropna(axis=0, how='all')
-        data.columns =  ['Time', 'Core 0 Temp. (°)', 'Core 1 Temp. (°)', 'Core 2 Temp. (°)',
-                        'Core 3 Temp. (°)', 'Core 4 Temp. (°)', 'Core 5 Temp. (°)',
-                        'Low temp. (°)', 'High temp. (°)', 'Core load (%)', 'Core speed (MHz)',
-                        'Low temp. (°).1', 'High temp. (°).1', 'Core load (%).1',
-                        'Core speed (MHz).1', 'Low temp. (°).2', 'High temp. (°).2',
-                        'Core load (%).2', 'Core speed (MHz).2', 'Low temp. (°).3',
-                        'High temp. (°).3', 'Core load (%).3', 'Core speed (MHz).3',
-                        'Low temp. (°).4', 'High temp. (°).4', 'Core load (%).4',
-                        'Core speed (MHz).4', 'Low temp. (°).5', 'High temp. (°).5',
-                        'Core load (%).5', 'Core speed (MHz).5', 'CPU 0 Power']
+        else:
+            data = pd.read_csv(file_path, encoding="latin1", skiprows=7)
+            data = data.dropna(axis=1, how='all')
+            data = data.dropna(axis=0, how='all')
 
-    else:
-        data = pd.read_csv(file_path, encoding="latin1", skiprows=7)
-        data = data.dropna(axis=1, how='all')
-        data = data.dropna(axis=0, how='all')
+        initial_rows = len(data)
+        print(f"\nQtd. linhas antes do processamento: {initial_rows}")
 
-    initial_rows = len(data)
-    print(f"\nQtd. linhas antes do processamento: {initial_rows}")
+        data["Time"] = pd.to_datetime(data["Time"], format="%H:%M:%S %m/%d/%y", errors="coerce")
+        data = data.dropna(subset=["Time"]) 
 
-    data["Time"] = pd.to_datetime(data["Time"], format="%H:%M:%S %m/%d/%y", errors="coerce")
-    data = data.dropna(subset=["Time"])
-
+    except Exception as e:
+        print(f"Erro ao processar o arquivo {file_path}: {e}")
+        input("Pressione Enter para sair.")
+        raise
 
     # Mapeia nomes originais para nomes padronizados em snake_case
     
@@ -71,13 +73,9 @@ def process_file(file_path, output_path):
                      'Core 4 Temp. (°)', 'Core load (%).4', 'Core speed (MHz).4',
                      'Core 5 Temp. (°)', 'Core load (%).5', 'Core speed (MHz).5',
                      'CPU 0 Power']]
-    except KeyError as e:
-        # Se o layout variar e alguma coluna faltar, apenas informa e segue com o que existir
-        print(f" Aviso: Coluna não encontrada durante a reordenação: {e}. O arquivo pode ter um formato diferente.")
-        input("Pressione Enter para sair.")
-        sys.exit()
 
-    rename_columns = {
+
+        rename_columns = {
         "Time": "time",
         "Core 0 Temp. (°)": "core_temp_0", "Core load (%)": "core_load_0", "Core speed (MHz)": "core_speed_0",
         "Core 1 Temp. (°)": "core_temp_1", "Core load (%).1": "core_load_1", "Core speed (MHz).1": "core_speed_1",
@@ -86,8 +84,14 @@ def process_file(file_path, output_path):
         "Core 4 Temp. (°)": "core_temp_4", "Core load (%).4": "core_load_4", "Core speed (MHz).4": "core_speed_4",
         "Core 5 Temp. (°)": "core_temp_5", "Core load (%).5": "core_load_5", "Core speed (MHz).5": "core_speed_5",
         "CPU 0 Power": "cpu_power"
-    }
+        }
     data.rename(columns=rename_columns, inplace=True)
+
+    except KeyError as e:
+        # Se o layout variar e alguma coluna faltar, apenas informa e segue com o que existir
+        print(f" Aviso: Coluna não encontrada durante a reordenação: {e}. O arquivo pode ter um formato diferente.")
+        input("Pressione Enter para sair.")
+        raise
 
     final_rows = len(data)
     print(f"\nLinhas após o processamento: {final_rows} (removidas {initial_rows - final_rows} linhas)")
@@ -107,7 +111,7 @@ def pipeline():
     # Encerra antes se não houver o que processar
     if not files_to_process:
         print("\nNenhum arquivo .csv encontrado na pasta 'data/raw'.")
-        return
+        raise
 
     print(f"Encontrados {len(files_to_process)} arquivos para processar.")
 
@@ -129,7 +133,7 @@ def pipeline():
             # Em caso de erro, reporta e encerra o pipeline
             print(f"!!! ERRO ao processar o arquivo {file_name}: {e}")
             print("!!! O arquivo não será movido.")
-            return  # encerra o pipeline na primeira falha
+            raise
 
-    # Conclusão do processo (executa somente se todos os arquivos forem processados sem erros)
+    # Conclusão do processo
     print("\n--- Processo finalizado! ---")

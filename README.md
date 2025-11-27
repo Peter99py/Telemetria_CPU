@@ -124,7 +124,8 @@ Essas visualizações ajudam a entender o desempenho térmico e energético do s
         ├──data_processed
         └──data_loaded_processed
 
-    No fim, este script moverá os arquivos crus de "data_raw" para "data_loaded_raw" e salvará os arquivos processados em "data_processed".
+    No fim, este script moverá os arquivos crus de "data_raw" para "data_loaded_raw" 
+    e salvará os arquivos processados em "data_processed".
 ```
 
 4.  **Dados Brutos**: Coloque seus arquivos CSV de telemetria da CPU (extraídos do `coretemp`) dentro da pasta `data_raw`.

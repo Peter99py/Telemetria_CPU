@@ -76,7 +76,7 @@ def ensure_sqlite_database_and_table():
 
 
 def get_engine():
-    # URL no formato SQLAlchemy para SQLite
+
     url = f"sqlite:///{db_path}"
 
     return create_engine(url)
@@ -99,7 +99,7 @@ def load_data_to_db():
     # Se não houver arquivos, encerra.
     if not files_to_load:
         print("\nNenhum arquivo .csv encontrado na pasta 'data/processed'.")
-        return
+        raise
 
     print(f"\nEncontrados {len(files_to_load)} arquivos para carregar.")
 
@@ -163,5 +163,6 @@ def load_data_to_db():
             print(f"\n!!! ERRO FATAL no processo de carregamento: {e}")
             print("!!! O processo foi abortado. Todas as alterações no banco de dados foram revertidas.")
             print("!!! Nenhum arquivo foi movido para a pasta 'data/loaded_processed'.")
+            raise
 
     print("\n--- Processo de carregamento finalizado! ---")

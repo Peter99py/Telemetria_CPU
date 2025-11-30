@@ -4,9 +4,11 @@
 from sqlalchemy import create_engine, text
 import pandas as pd
 import os
+import streamlit as st
 
 
 # Conexão com SQLite
+@st.cache_resource
 def get_engine():
     base_dir = os.path.dirname(os.path.abspath(__file__))  # pasta onde está queries.py
     db_path = os.path.join(base_dir, "data.db")
@@ -40,6 +42,7 @@ def date_filters(year=None, month=None, day=None):
 
 
 # Dimensão de tempo: anos disponíveis nos dados
+@st.cache_data
 def years_available():
 
     engine = get_engine()
@@ -56,6 +59,7 @@ def years_available():
 
 
 # Dimensão de tempo: meses disponíveis (opcionalmente filtrados por ano)
+@st.cache_data
 def months_available(year=None):
 
     engine = get_engine()
@@ -80,6 +84,7 @@ def months_available(year=None):
 
 
 # Dimensão de tempo: dias disponíveis (opcionalmente filtrados por ano/mês)
+@st.cache_data
 def days_available(year=None, month=None):
 
     engine = get_engine()
@@ -103,6 +108,7 @@ def days_available(year=None, month=None):
     return df["day"].tolist()
 
 # Resumo diário (MIN/AVG/MAX) da temperatura por dia
+@st.cache_data
 def temp_summary(year=None, month=None, day=None):
 
     engine = get_engine()
@@ -158,6 +164,7 @@ def temp_summary(year=None, month=None, day=None):
 
 
 # Relaciona temperatura (X) vs velocidade do núcleo (Y) por faixa (MIN/AVG/MAX)
+@st.cache_data
 def temp_vs_speed(year=None, month=None, day=None):
 
     engine = get_engine()
@@ -207,6 +214,7 @@ def temp_vs_speed(year=None, month=None, day=None):
 
 
 # Temperatura por hora do dia (MIN/AVG/MAX)
+@st.cache_data
 def time_vs_temp(year=None, month=None, day=None):
 
     engine = get_engine()
@@ -254,6 +262,7 @@ def time_vs_temp(year=None, month=None, day=None):
 
 
 # Energia do CPU por hora do dia (MIN/AVG/MAX)
+@st.cache_data
 def time_vs_power(year=None, month=None, day=None):
 
     engine = get_engine()
@@ -301,6 +310,7 @@ def time_vs_power(year=None, month=None, day=None):
 
 
 # Relaciona temperatura (X) vs energia do CPU (Y) por faixa (MIN/AVG/MAX)
+@st.cache_data
 def temp_vs_power(year=None, month=None, day=None):
     # Obtém Engine compartilhado para executar a consulta
     engine = get_engine()
@@ -349,6 +359,7 @@ def temp_vs_power(year=None, month=None, day=None):
 
 
 # Média diária de minutos por faixa de temperatura
+@st.cache_data
 def temp_ranges(year=None, month=None, day=None):
     # Obtém Engine compartilhado para executar a consulta
     engine = get_engine()

@@ -85,7 +85,7 @@ def process_file(file_path, output_path):
         "Core 5 Temp. (°)": "core_temp_5", "Core load (%).5": "core_load_5", "Core speed (MHz).5": "core_speed_5",
         "CPU 0 Power": "cpu_power"
         }
-    data.rename(columns=rename_columns, inplace=True)
+        data.rename(columns=rename_columns, inplace=True)
 
     except KeyError as e:
         # Se o layout variar e alguma coluna faltar, apenas informa e segue com o que existir

@@ -28,6 +28,8 @@ def main():
 
         load.load_data_to_db()
 
+        input("\nPressione Enter para sair...")
+
     except Exception as e:
         print(f"!!! ERRO fatal durante a execução: {e}")
         input("Pressione Enter para sair.")

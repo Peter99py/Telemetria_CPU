@@ -2,6 +2,7 @@
 # Construção do Dashboard com filtros (ano/mês/dia), séries temporais e relações
 
 import streamlit as st
+from datetime import datetime
 from src.charts.charts import line_chart, column_chart
 from src.queries.queries import time_vs_temp, temp_vs_speed, time_vs_power, temp_vs_power, temp_ranges, years_available, months_available, days_available, temp_summary
 
@@ -14,10 +15,19 @@ with st.sidebar:
     st.header("Filtros de Data")
 
     years = years_available()
+    options_years = ["Todos"] + years
+    current_year = str(datetime.now().year)
+    
+    # Tenta selecionar o ano atual por padrão
+    try:
+        default_index = options_years.index(current_year)
+    except ValueError:
+        default_index = 0
+
     sel_year = st.selectbox(
         "Ano",
-        options=["Todos"] + years,
-        index=0,
+        options=options_years,
+        index=default_index,
         help="Selecione um ano para habilitar o filtro de mês e dia."
     )
 

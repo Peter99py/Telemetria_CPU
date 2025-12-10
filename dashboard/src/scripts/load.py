@@ -3,6 +3,7 @@
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy import inspect, Table, Column, Integer, Float, DateTime, MetaData
+from sqlalchemy import Index
 import pandas as pd
 import os
 import shutil
@@ -19,6 +20,14 @@ data_loaded_processed_path = "data/loaded_processed"  # destino pós-sucesso
 # Garante que a pasta de destino exista
 os.makedirs(data_loaded_processed_path, exist_ok=True)
 
+def get_engine():
+    url = f"sqlite:///{db_path}"
+    return create_engine(url)
+
+# Recursos globais de conexão e configuração
+engine = get_engine()
+Session = sessionmaker(bind=engine)
+
 def ensure_sqlite_database_and_table():
     # Verifica se o arquivo SQLite existe e se a tabela está criada
     if not os.path.exists(db_path):
@@ -32,7 +41,7 @@ def ensure_sqlite_database_and_table():
         Table(
             nome_tabela,
             metadata,
-            Column('time', DateTime),
+            Column('time', DateTime, index=True),
             Column('core_temp_0', Integer),
             Column('low_temp_0', Integer),
             Column('high_temp_0', Integer),
@@ -73,17 +82,35 @@ def ensure_sqlite_database_and_table():
         )
         metadata.create_all(engine)
         print(f"Tabela '{nome_tabela}' criada com sucesso.")
+    
+    # Verifica e cria índice se não existir (para bancos já existentes)
+    # Recarrega inspeção para garantir
+    insp = inspect(engine)
+    indexes = insp.get_indexes(nome_tabela)
+    index_names = [idx['name'] for idx in indexes]
+    
+    # Nome padrão que o SQLAlchemy costuma dar ou um nome específico que vamos usar
+    target_index_name = f"ix_{nome_tabela}_time"
+    
+    # Verifica se existe algum índice na coluna 'time'
+    has_time_index = False
+    for idx in indexes:
+        if 'time' in idx.get('column_names', []):
+            has_time_index = True
+            break
 
-
-def get_engine():
-
-    url = f"sqlite:///{db_path}"
-
-    return create_engine(url)
-
-# Recursos globais de conexão e configuração
-engine = get_engine()
-Session = sessionmaker(bind=engine)
+    if not has_time_index:
+        print(f"Índice na coluna 'time' não encontrado. Criando índice '{target_index_name}'...")
+        # Define a tabela para manipulação do índice
+        tabela = Table(nome_tabela, metadata, autoload_with=engine)
+        index = Index(target_index_name, tabela.c.time)
+        try:
+            index.create(engine)
+            print(f"Índice '{target_index_name}' criado com sucesso.")
+        except Exception as e:
+            print(f"Aviso: Não foi possível criar o índice (pode já existir com outro nome ou erro de permissão): {e}")
+    else:
+        print("Índice na coluna 'time' já existe.")
 
 
 def load_data_to_db():
@@ -99,7 +126,8 @@ def load_data_to_db():
     # Se não houver arquivos, encerra.
     if not files_to_load:
         print("\nNenhum arquivo .csv encontrado na pasta 'data/processed'.")
-        raise
+        # Não levanta erro, apenas retorna, pois pode ser executado sem arquivos novos
+        return
 
     print(f"\nEncontrados {len(files_to_load)} arquivos para carregar.")
 

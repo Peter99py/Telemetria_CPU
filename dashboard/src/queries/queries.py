@@ -5,6 +5,7 @@ from sqlalchemy import create_engine, text
 import pandas as pd
 import os
 import streamlit as st
+from datetime import datetime, timedelta
 
 
 # Conexão com SQLite
@@ -23,18 +24,46 @@ def date_filters(year=None, month=None, day=None):
 
     # Se informado, filtra por ano (EXTRACT YEAR)
     if year is not None:
-        conds.append("strftime('%Y', time) = :year")
-        params["year"] = f"{int(year):04d}"
-
-    # Se informado, filtra por mês (EXTRACT MONTH)
-    if month is not None:
-        conds.append("strftime('%m', time) = :month")
-        params["month"] = f"{int(month):02d}"
-        
-    # Se informado, filtra por dia (EXTRACT DAY)
-    if day is not None:
-        conds.append("strftime('%d', time) = :day")
-        params["day"] = f"{int(day):02d}"
+        y = int(year)
+        if month is not None:
+            m = int(month)
+            if day is not None:
+                d = int(day)
+                # Filtro por dia específico: time >= YYYY-MM-DD 00:00:00 AND time < YYYY-MM-(DD+1) 00:00:00
+                start_date = datetime(y, m, d)
+                end_date = start_date + timedelta(days=1)
+                conds.append("time >= :start_date AND time < :end_date")
+                params["start_date"] = start_date.strftime("%Y-%m-%d %H:%M:%S")
+                params["end_date"] = end_date.strftime("%Y-%m-%d %H:%M:%S")
+            else:
+                # Filtro por mês específico: time >= YYYY-MM-01 00:00:00 AND time < YYYY-(MM+1)-01 00:00:00
+                start_date = datetime(y, m, 1)
+                if m == 12:
+                    end_date = datetime(y + 1, 1, 1)
+                else:
+                    end_date = datetime(y, m + 1, 1)
+                conds.append("time >= :start_date AND time < :end_date")
+                params["start_date"] = start_date.strftime("%Y-%m-%d %H:%M:%S")
+                params["end_date"] = end_date.strftime("%Y-%m-%d %H:%M:%S")
+        else:
+             # Filtro por ano específico: time >= YYYY-01-01 00:00:00 AND time < (YYYY+1)-01-01 00:00:00
+            start_date = datetime(y, 1, 1)
+            end_date = datetime(y + 1, 1, 1)
+            conds.append("time >= :start_date AND time < :end_date")
+            params["start_date"] = start_date.strftime("%Y-%m-%d %H:%M:%S")
+            params["end_date"] = end_date.strftime("%Y-%m-%d %H:%M:%S")
+    
+    # Fallback para casos onde year é None mas outros filtros existem
+    elif month is not None or day is not None:
+         # Se informado, filtra por mês (EXTRACT MONTH)
+        if month is not None:
+            conds.append("strftime('%m', time) = :month")
+            params["month"] = f"{int(month):02d}"
+            
+        # Se informado, filtra por dia (EXTRACT DAY)
+        if day is not None:
+            conds.append("strftime('%d', time) = :day")
+            params["day"] = f"{int(day):02d}"
 
     # Gera WHERE ... AND ... quando existirem condições, caso contrário vazio
     where_sql = f"WHERE {' AND '.join(conds)}" if conds else ""

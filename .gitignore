@@ -10,5 +10,4 @@ testes.py
 *.ipynb
 *.ini
 *.xlsx
-*.db
 Dockerfile

@@ -11,3 +11,4 @@ testes.py
 *.ini
 *.xlsx
 Dockerfile
+*.md
